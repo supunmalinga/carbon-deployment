@@ -12,6 +12,7 @@ import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.tomcat.util.ExceptionUtils;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.CarbonException;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -22,13 +23,21 @@ import org.wso2.carbon.core.persistence.metadata.DeploymentArtifactMetadataFacto
 import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.deployment.GhostDeployerUtils;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
+import org.wso2.carbon.webapp.mgt.ext.APIPublisherLifecycleListener;
+import org.wso2.carbon.webapp.mgt.loader.LoaderConstants;
 import org.wso2.carbon.webapp.mgt.utils.GhostWebappDeployerUtils;
 import org.wso2.carbon.webapp.mgt.utils.WebAppUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 public abstract class AbstractWebappDeployer extends AbstractDeployer {
 
@@ -137,6 +146,7 @@ public abstract class AbstractWebappDeployer extends AbstractDeployer {
             // Object can be of listeners interfaces in javax.servlet.*
             ArrayList<Object> listeners = new ArrayList<Object>(1);
             //            listeners.add(new CarbonServletRequestListener());
+//            addListeners(listeners, deploymentFileData);
             tomcatWebappDeployer.deploy(deploymentFileData.getFile(),
                     (ArrayList<WebContextParameter>) configContext.getProperty(
                             CarbonConstants.SERVLET_CONTEXT_PARAMETER_LIST),
@@ -416,4 +426,49 @@ public abstract class AbstractWebappDeployer extends AbstractDeployer {
         deploy(data);
     }
 
+    private void addListeners(ArrayList<Object> listeners, DeploymentFileData deploymentFileData) {
+        URL url = getClassloadingConfigFileURL(deploymentFileData.getAbsolutePath());
+        //TODO
+        if(url != null){
+            listeners.add(new APIPublisherLifecycleListener()) ;
+        }
+    }
+
+    private static URL getClassloadingConfigFileURL(String webappFilePath) {
+        File f = new File(webappFilePath);
+        if (f.isDirectory()) {
+            File configFile = new File(webappFilePath + File.separator + "META-INF/application.xml");
+            if (configFile.exists()) {
+                try {
+                    return configFile.toURI().toURL();
+                } catch (MalformedURLException e) {
+                    //TODO fixme
+                }
+            }
+        } else {
+            JarFile webappJarFile = null;
+            JarEntry contextXmlFileEntry;
+            try {
+                webappJarFile = new JarFile(webappFilePath);
+                contextXmlFileEntry = webappJarFile.getJarEntry("META-INF/application.xml");
+                if (contextXmlFileEntry != null) {
+                    return new URL("jar:file:" + URLEncoder.encode(webappFilePath, "UTF-8") + "!/" +
+                            LoaderConstants.APP_CL_CONFIG_FILE);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                //TODO fixme
+            } finally {
+                if (webappJarFile != null) {
+                    try {
+                        webappJarFile.close();
+                    } catch (Throwable t) {
+                        ExceptionUtils.handleThrowable(t);
+                    }
+                }
+            }
+
+        }
+        return null;
+    }
 }

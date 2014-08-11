@@ -21,28 +21,35 @@ import org.apache.catalina.Lifecycle;
 import org.apache.catalina.LifecycleEvent;
 import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.core.StandardContext;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.wso2.carbon.webapp.mgt.loader.LoaderConstants;
 
 
-public class ASExtLifecycleListener extends CarbonLifecycleListenerBase  {
-
+public class ASExtLifecycleListener extends CarbonLifecycleListenerBase {
+    private static final Log log = LogFactory.getLog(ASExtLifecycleListener.class);
 
     @Override
     public void lifecycleEvent(StandardContext context, AppInfo appInfo) {
         //TODO - Write this properly
+        log.info(" >>>>>>>>>>>>>> ASExtLifecycleListener lifecycleEvent");
+
         try {
             URL url = context.getServletContext().getResource("/META-INF/application.xml");
+
+            log.info(" >>>>>>>>>> context : " + context.getName() + " , url : " + url);
+
             if(url != null){
-                //TODO
+                //TODO add more info into AppInfo eg: api version, API name, api contexts + params
                 AppInfo info = new AppInfo();
                 info.setManagedApi(true);
+                log.info("XXXXX " + context.getName() + " webapp has managedAPI=true");
                 setAppInfo(context, info);
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-
     }
 
 //	public void lifecycleEvent(LifecycleEvent event) {
@@ -90,43 +97,5 @@ public class ASExtLifecycleListener extends CarbonLifecycleListenerBase  {
 //
 //
 //	}
-//
-//    private static URL getClassloadingConfigFileURL(String webappFilePath) {
-//        File f = new File(webappFilePath);
-//        if (f.isDirectory()) {
-//            File configFile = new File(webappFilePath + File.separator + "/META-INF/application.xml");
-//            if (configFile.exists()) {
-//                try {
-//                    return configFile.toURI().toURL();
-//                } catch (MalformedURLException e) {
-//                    //TODO fixme
-//                }
-//            }
-//        } else {
-//            JarFile webappJarFile = null;
-//            JarEntry contextXmlFileEntry;
-//            try {
-//                webappJarFile = new JarFile(webappFilePath);
-//                contextXmlFileEntry = webappJarFile.getJarEntry("META-INF/application.xml");
-//                if (contextXmlFileEntry != null) {
-//                    return new URL("jar:file:" + URLEncoder.encode(webappFilePath, "UTF-8") + "!/" +
-//                            LoaderConstants.APP_CL_CONFIG_FILE);
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//                //TODO fixme
-//            } finally {
-//                if (webappJarFile != null) {
-//                    try {
-//                        webappJarFile.close();
-//                    } catch (Throwable t) {
-//                        ExceptionUtils.handleThrowable(t);
-//                    }
-//                }
-//            }
-//
-//        }
-//        return null;
-//    }
 
 }

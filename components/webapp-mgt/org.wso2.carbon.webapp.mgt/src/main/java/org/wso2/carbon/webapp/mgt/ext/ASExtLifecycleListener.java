@@ -1,30 +1,11 @@
 package org.wso2.carbon.webapp.mgt.ext;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
-import javax.servlet.ServletContextAttributeListener;
-import javax.servlet.ServletRequestAttributeListener;
-import javax.servlet.ServletRequestListener;
-import javax.servlet.http.HttpSessionActivationListener;
-import javax.servlet.http.HttpSessionAttributeListener;
-import javax.servlet.http.HttpSessionBindingListener;
-
-import org.apache.catalina.ContainerListener;
-import org.apache.catalina.Lifecycle;
-import org.apache.catalina.LifecycleEvent;
-import org.apache.catalina.LifecycleListener;
 import org.apache.catalina.core.StandardContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.tomcat.util.ExceptionUtils;
-import org.wso2.carbon.webapp.mgt.loader.LoaderConstants;
 
 
 public class ASExtLifecycleListener extends CarbonLifecycleListenerBase {
@@ -42,13 +23,33 @@ public class ASExtLifecycleListener extends CarbonLifecycleListenerBase {
 
             if(url != null){
                 //TODO add more info into AppInfo eg: api version, API name, api contexts + params
-                AppInfo info = new AppInfo();
+                String appVersion = getAppVersion(context.getName());
+                String appName = context.getName().substring(0, context.getName().indexOf(appVersion) - 1);
+                AppInfo info = new AppInfo(appName, appVersion);
+
+                //todo handle scenario for unversioned apps
                 info.setManagedApi(true);
                 log.info("XXXXX " + context.getName() + " webapp has managedAPI=true");
                 setAppInfo(context, info);
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
+        }
+    }
+
+    private String getAppVersion(String appContext) {
+        String versionString = appContext;
+        if (versionString.startsWith("/t/")) {
+            //remove tenant context
+            versionString = versionString.substring(appContext.lastIndexOf("/webapps/") + 9);
+        } else if(appContext.startsWith("/")) {
+            versionString = versionString.substring(1);
+        }
+        if (versionString.contains("/")) {
+            versionString = versionString.substring(versionString.indexOf("/") + 1);
+            return versionString;
+        } else {
+            return "";
         }
     }
 
